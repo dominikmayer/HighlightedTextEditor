@@ -16,7 +16,7 @@ public typealias SymbolicTraits = NSFontDescriptor.SymbolicTraits
 public typealias SystemTextView = NSTextView
 public typealias SystemScrollView = NSScrollView
 
-let defaultEditorFont = NSFont.systemFont(ofSize: NSFont.systemFontSize)
+public let defaultEditorFont = NSFont.systemFont(ofSize: NSFont.systemFontSize)
 let defaultEditorTextColor = NSColor.labelColor
 
 #else
@@ -28,7 +28,7 @@ public typealias SymbolicTraits = UIFontDescriptor.SymbolicTraits
 public typealias SystemTextView = UITextView
 public typealias SystemScrollView = UIScrollView
 
-let defaultEditorFont = UIFont.preferredFont(forTextStyle: .body)
+public let defaultEditorFont = UIFont.preferredFont(forTextStyle: .body)
 let defaultEditorTextColor = UIColor.label
 
 #endif
@@ -89,6 +89,7 @@ public struct HighlightRule {
 internal protocol HighlightingTextEditor {
     var text: String { get set }
     var highlightRules: [HighlightRule] { get }
+    var font: SystemFontAlias { get }
 }
 
 public typealias OnSelectionChangeCallback = ([NSRange]) -> Void
@@ -101,11 +102,15 @@ public typealias OnTextChangeCallback = (_ editorContent: String) -> Void
 extension HighlightingTextEditor {
     var placeholderFont: SystemColorAlias { SystemColorAlias() }
 
-    static func getHighlightedText(text: String, highlightRules: [HighlightRule]) -> NSMutableAttributedString {
+    static func getHighlightedText(
+        text: String,
+        highlightRules: [HighlightRule],
+        font: SystemFontAlias
+    ) -> NSMutableAttributedString {
         let highlightedString = NSMutableAttributedString(string: text)
         let all = NSRange(location: 0, length: text.utf16.count)
 
-        let editorFont = defaultEditorFont
+        let editorFont = font
         let editorTextColor = defaultEditorTextColor
 
         highlightedString.addAttribute(.font, value: editorFont, range: all)

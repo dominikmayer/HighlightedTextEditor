@@ -10,6 +10,8 @@ import SwiftUI
 import UIKit
 
 public struct HighlightedTextEditor: UIViewRepresentable, HighlightingTextEditor {
+    let font: UIFont
+    
     public struct Internals {
         public let textView: SystemTextView
         public let scrollView: SystemScrollView?
@@ -31,10 +33,12 @@ public struct HighlightedTextEditor: UIViewRepresentable, HighlightingTextEditor
 
     public init(
         text: Binding<String>,
-        highlightRules: [HighlightRule]
+        highlightRules: [HighlightRule],
+        font: UIFont = defaultEditorFont
     ) {
         _text = text
         self.highlightRules = highlightRules
+        self.font = font
     }
 
     public func makeCoordinator() -> Coordinator {
@@ -67,7 +71,8 @@ public struct HighlightedTextEditor: UIViewRepresentable, HighlightingTextEditor
 
         let highlightedText = HighlightedTextEditor.getHighlightedText(
             text: text,
-            highlightRules: highlightRules
+            highlightRules: highlightRules,
+            font: font
         )
 
         if uiView.attributedText != highlightedText {

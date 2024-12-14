@@ -13,6 +13,8 @@ import AppKit
 import SwiftUI
 
 public struct HighlightedTextEditor: NSViewRepresentable, HighlightingTextEditor {
+    let font: NSFont
+    
     public struct Internals {
         public let textView: SystemTextView
         public let scrollView: SystemScrollView?
@@ -34,10 +36,12 @@ public struct HighlightedTextEditor: NSViewRepresentable, HighlightingTextEditor
 
     public init(
         text: Binding<String>,
-        highlightRules: [HighlightRule]
+        highlightRules: [HighlightRule],
+        font: NSFont = defaultEditorFont
     ) {
         _text = text
         self.highlightRules = highlightRules
+        self.font = font
     }
 
     public func makeCoordinator() -> Coordinator {
@@ -57,7 +61,8 @@ public struct HighlightedTextEditor: NSViewRepresentable, HighlightingTextEditor
 
         let highlightedText = HighlightedTextEditor.getHighlightedText(
             text: text,
-            highlightRules: highlightRules
+            highlightRules: highlightRules,
+            font: font
         )
 
         view.attributedText = highlightedText
