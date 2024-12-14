@@ -53,22 +53,33 @@ public struct HighlightedTextEditor: UIViewRepresentable, HighlightingTextEditor
     public func updateUIView(_ uiView: UITextView, context: Context) {
         uiView.isScrollEnabled = false
         context.coordinator.updatingUIView = true
+        defer {
+            uiView.isScrollEnabled = true
+            context.coordinator.updatingUIView = false
+        }
+
+        // Do not update attributedText or selection if the user is currently composing text (marked text)
+        guard uiView.markedTextRange == nil else {
+            updateTextViewModifiers(uiView)
+            runIntrospect(uiView)
+            return
+        }
 
         let highlightedText = HighlightedTextEditor.getHighlightedText(
             text: text,
             highlightRules: highlightRules
         )
 
-        if let range = uiView.markedTextNSRange {
-            uiView.setAttributedMarkedText(highlightedText, selectedRange: range)
-        } else {
-            uiView.attributedText = highlightedText
+        if uiView.attributedText != highlightedText {
+            uiView.textStorage.setAttributedString(highlightedText)
         }
+        
         updateTextViewModifiers(uiView)
         runIntrospect(uiView)
-        uiView.isScrollEnabled = true
-        uiView.selectedTextRange = context.coordinator.selectedTextRange
-        context.coordinator.updatingUIView = false
+
+        if let selection = context.coordinator.selectedTextRange {
+            uiView.selectedTextRange = selection
+        }
     }
 
     private func runIntrospect(_ textView: UITextView) {
