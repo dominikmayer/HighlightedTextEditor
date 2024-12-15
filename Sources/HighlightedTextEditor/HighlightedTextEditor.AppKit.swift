@@ -74,7 +74,7 @@ public struct HighlightedTextEditor: NSViewRepresentable, HighlightingTextEditor
             let insertionIndex = max(0, min(insertionIndex, highlightedText.length - 1))
             view.textView.typingAttributes = highlightedText.attributes(at: insertionIndex, effectiveRange: nil)
         } else {
-            view.textView.typingAttributes = [.font: defaultEditorFont]
+            view.textView.typingAttributes = [.font: font]
         }
 
         context.coordinator.updatingNSView = false
