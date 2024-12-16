@@ -65,18 +65,24 @@ public struct HighlightedTextEditor: NSViewRepresentable, HighlightingTextEditor
             font: font
         )
 
-        view.attributedText = highlightedText
-        runIntrospect(view)
-        view.selectedRanges = context.coordinator.selectedRanges
-
-        // Update the typing attributes to match the attributes at the current insertion point.
-        if highlightedText.length > 0, let insertionIndex = view.selectedRanges.first?.rangeValue.location {
-            let insertionIndex = max(0, min(insertionIndex, highlightedText.length - 1))
-            view.textView.typingAttributes = highlightedText.attributes(at: insertionIndex, effectiveRange: nil)
-        } else {
-            view.textView.typingAttributes = [.font: font]
+        if view.textView.attributedString() != highlightedText {
+            context.coordinator.updatingNSView = true
+            context.coordinator.isProgrammaticChange = true
+            
+            view.attributedText = highlightedText
+            runIntrospect(view)
+            view.selectedRanges = context.coordinator.selectedRanges
+            
+            // Update the typing attributes to match the attributes at the current insertion point.
+            if highlightedText.length > 0, let insertionIndex = view.selectedRanges.first?.rangeValue.location {
+                let insertionIndex = max(0, min(insertionIndex, highlightedText.length - 1))
+                view.textView.typingAttributes = highlightedText.attributes(at: insertionIndex, effectiveRange: nil)
+            } else {
+                view.textView.typingAttributes = [.font: font]
+            }
         }
 
+        context.coordinator.isProgrammaticChange = false
         context.coordinator.updatingNSView = false
     }
 
@@ -92,6 +98,7 @@ public extension HighlightedTextEditor {
         var parent: HighlightedTextEditor
         var selectedRanges: [NSValue] = []
         var updatingNSView = false
+        var isProgrammaticChange = false
 
         init(_ parent: HighlightedTextEditor) {
             self.parent = parent
@@ -115,10 +122,13 @@ public extension HighlightedTextEditor {
         }
 
         public func textDidChange(_ notification: Notification) {
-            guard let textView = notification.object as? NSTextView else { return }
-            let content = String(textView.textStorage?.string ?? "")
+            guard let textView = notification.object as? NSTextView,
+                  !isProgrammaticChange
+            else {
+                return
+            }
 
-            parent.text = content
+            parent.text = textView.string
             selectedRanges = textView.selectedRanges
         }
 
