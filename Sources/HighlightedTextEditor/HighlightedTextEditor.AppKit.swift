@@ -198,7 +198,9 @@ public extension HighlightedTextEditor {
             textView.backgroundColor = NSColor.textBackgroundColor
             textView.delegate = self.delegate
             textView.drawsBackground = true
+            textView.importsGraphics = false
             textView.isHorizontallyResizable = false
+            textView.isRichText = false
             textView.isVerticallyResizable = true
             textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
             textView.minSize = NSSize(width: 0, height: contentSize.height)
