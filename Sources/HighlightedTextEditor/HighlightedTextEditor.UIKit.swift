@@ -74,17 +74,17 @@ public struct HighlightedTextEditor: UIViewRepresentable, HighlightingTextEditor
             highlightRules: highlightRules,
             font: font
         )
-
+        
         if uiView.attributedText != highlightedText {
             uiView.textStorage.setAttributedString(highlightedText)
+            
+            if let selection = context.coordinator.selectedTextRange {
+                uiView.selectedTextRange = selection
+            }
         }
-        
+
         updateTextViewModifiers(uiView)
         runIntrospect(uiView)
-
-        if let selection = context.coordinator.selectedTextRange {
-            uiView.selectedTextRange = selection
-        }
     }
 
     private func runIntrospect(_ textView: UITextView) {
