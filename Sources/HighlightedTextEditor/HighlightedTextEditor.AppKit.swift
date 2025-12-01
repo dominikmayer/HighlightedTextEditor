@@ -58,30 +58,43 @@ public struct HighlightedTextEditor: NSViewRepresentable, HighlightingTextEditor
 
     public func updateNSView(_ view: ScrollableTextView, context: Context) {
         context.coordinator.updatingNSView = true
-
+        
         let highlightedText = HighlightedTextEditor.getHighlightedText(
             text: text,
             highlightRules: highlightRules,
             font: font
         )
-
-        if view.textView.attributedString() != highlightedText {
-            context.coordinator.updatingNSView = true
+        
+        let currentString = view.textView.string
+        let newString = highlightedText.string
+        
+        if currentString != newString {
+            view.attributedText = highlightedText
+            view.selectedRanges = context.coordinator.selectedRanges
+        }
+        else if view.textView.attributedString() != highlightedText {
             context.coordinator.isProgrammaticChange = true
             
-            view.attributedText = highlightedText
-            runIntrospect(view)
-            view.selectedRanges = context.coordinator.selectedRanges
+            view.textView.textStorage?.beginEditing()
             
-            // Update the typing attributes to match the attributes at the current insertion point.
-            if highlightedText.length > 0, let insertionIndex = view.selectedRanges.first?.rangeValue.location {
-                let insertionIndex = max(0, min(insertionIndex, highlightedText.length - 1))
-                view.textView.typingAttributes = highlightedText.attributes(at: insertionIndex, effectiveRange: nil)
-            } else {
-                view.textView.typingAttributes = [.font: font]
+            highlightedText.enumerateAttributes(in: NSRange(location: 0, length: highlightedText.length), options: []) { (attrs, range, _) in
+                view.textView.textStorage?.setAttributes(attrs, range: range)
             }
+            
+            view.textView.textStorage?.endEditing()
         }
-
+        
+        if let insertionIndex = view.selectedRanges.first?.rangeValue.location {
+            let safeIndex = max(0, min(insertionIndex, highlightedText.length - 1))
+            var attributes = highlightedText.attributes(at: safeIndex, effectiveRange: nil)
+            if attributes[.font] == nil {
+                attributes[.font] = font
+            }
+            view.textView.typingAttributes = attributes
+        } else {
+            view.textView.typingAttributes = [.font: font, .foregroundColor: NSColor.textColor]
+        }
+        
         context.coordinator.isProgrammaticChange = false
         context.coordinator.updatingNSView = false
     }
@@ -127,9 +140,9 @@ public extension HighlightedTextEditor {
             else {
                 return
             }
-
-            parent.text = textView.string
-            selectedRanges = textView.selectedRanges
+            
+            self.parent.text = textView.string
+            self.selectedRanges = textView.selectedRanges
         }
 
         public func textViewDidChangeSelection(_ notification: Notification) {
