@@ -9,7 +9,7 @@
 import SwiftUI
 import UIKit
 
-public struct HighlightedTextEditor: UIViewRepresentable, HighlightingTextEditor {
+public struct HighlightedTextEditor: UIViewRepresentable, @MainActor HighlightingTextEditor {
     let font: UIFont
     
     public struct Internals {
