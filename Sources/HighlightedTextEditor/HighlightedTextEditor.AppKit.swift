@@ -59,33 +59,59 @@ public struct HighlightedTextEditor: NSViewRepresentable, @MainActor Highlightin
     public func updateNSView(_ view: ScrollableTextView, context: Context) {
         context.coordinator.updatingNSView = true
         
-        let highlightedText = HighlightedTextEditor.getHighlightedText(
-            text: text,
-            highlightRules: highlightRules,
-            font: font
-        )
+        let needsHighlight = context.coordinator.lastPlainText != text
+        
+        let highlightedText: NSAttributedString
+        if needsHighlight {
+            let newHighlighted = HighlightedTextEditor.getHighlightedText(
+                text: text,
+                highlightRules: highlightRules,
+                font: font
+            )
+            context.coordinator.lastPlainText = text
+            context.coordinator.lastHighlightedText = newHighlighted
+            highlightedText = newHighlighted
+        } else {
+            highlightedText = context.coordinator.lastHighlightedText
+        }
         
         let currentString = view.textView.string
         let newString = highlightedText.string
         
-        if currentString != newString {
+        let lengthsDiffer = (currentString as NSString).length != highlightedText.length
+        
+        if currentString != newString || lengthsDiffer {
+            context.coordinator.isProgrammaticChange = true
+            
             view.attributedText = highlightedText
-            view.selectedRanges = context.coordinator.selectedRanges
+            
+            let validRanges = context.coordinator.selectedRanges.map { value -> NSValue in
+                let range = value.rangeValue
+                let safeRange = range.clamped(to: highlightedText.length)
+                return NSValue(range: safeRange)
+            }
+            view.selectedRanges = validRanges
         }
         else if view.textView.attributedString() != highlightedText {
             context.coordinator.isProgrammaticChange = true
             
             view.textView.textStorage?.beginEditing()
-            
             highlightedText.enumerateAttributes(in: NSRange(location: 0, length: highlightedText.length), options: []) { (attrs, range, _) in
                 view.textView.textStorage?.setAttributes(attrs, range: range)
             }
-            
             view.textView.textStorage?.endEditing()
+        }
+        
+        guard highlightedText.length > 0 else {
+            view.textView.typingAttributes = [.font: font, .foregroundColor: NSColor.textColor]
+            context.coordinator.isProgrammaticChange = false
+            context.coordinator.updatingNSView = false
+            return
         }
         
         if let insertionIndex = view.selectedRanges.first?.rangeValue.location {
             let safeIndex = max(0, min(insertionIndex, highlightedText.length - 1))
+            
             var attributes = highlightedText.attributes(at: safeIndex, effectiveRange: nil)
             if attributes[.font] == nil {
                 attributes[.font] = font
@@ -112,6 +138,9 @@ public extension HighlightedTextEditor {
         var selectedRanges: [NSValue] = []
         var updatingNSView = false
         var isProgrammaticChange = false
+        
+        var lastPlainText: String = ""
+        var lastHighlightedText: NSAttributedString = NSAttributedString()
 
         init(_ parent: HighlightedTextEditor) {
             self.parent = parent
@@ -171,7 +200,9 @@ public extension HighlightedTextEditor {
 public extension HighlightedTextEditor {
     final class ScrollableTextView: NSView {
         weak var delegate: NSTextViewDelegate?
-
+        
+        private var didSetup = false
+        
         var attributedText: NSAttributedString {
             didSet {
                 textView.textStorage?.setAttributedString(attributedText)
@@ -234,7 +265,6 @@ public extension HighlightedTextEditor {
         }()
 
         // MARK: - Init
-
         init() {
             self.attributedText = NSMutableAttributedString()
 
@@ -247,10 +277,12 @@ public extension HighlightedTextEditor {
         }
 
         // MARK: - Life cycle
-
         override public func viewWillDraw() {
             super.viewWillDraw()
-
+            
+            guard !didSetup else { return }
+            didSetup = true
+            
             setupScrollViewConstraints()
             setupTextView()
         }
@@ -312,6 +344,15 @@ public extension HighlightedTextEditor {
             callback(range)
         }
         return editor
+    }
+}
+
+private extension NSRange {
+    func clamped(to length: Int) -> NSRange {
+        let safeLocation = max(0, min(location, length))
+        let maxPossibleLength = length - safeLocation
+        let safeLength = max(0, min(self.length, maxPossibleLength))
+        return NSRange(location: safeLocation, length: safeLength)
     }
 }
 #endif
