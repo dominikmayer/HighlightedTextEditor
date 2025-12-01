@@ -35,8 +35,8 @@ let defaultEditorTextColor = UIColor.label
 
 extension SystemFontAlias: @unchecked Sendable {}
 
-public struct TextFormattingRule {
-    public typealias AttributedKeyCallback = (String, Range<String.Index>) -> Any
+public struct TextFormattingRule: Sendable {
+    public typealias AttributedKeyCallback = @Sendable (String, Range<String.Index>) -> Any
 
     let key: NSAttributedString.Key?
     let calculateValue: AttributedKeyCallback?
@@ -44,7 +44,7 @@ public struct TextFormattingRule {
 
     // ------------------- convenience ------------------------
 
-    public init(key: NSAttributedString.Key, value: Any) {
+    public init(key: NSAttributedString.Key, value: Sendable) {
         self.init(key: key, calculateValue: { _, _ in value }, fontTraits: [])
     }
 
@@ -69,7 +69,7 @@ public struct TextFormattingRule {
     }
 }
 
-public struct HighlightRule {
+public struct HighlightRule: Sendable {
     let pattern: NSRegularExpression
 
     let formattingRules: [TextFormattingRule]
