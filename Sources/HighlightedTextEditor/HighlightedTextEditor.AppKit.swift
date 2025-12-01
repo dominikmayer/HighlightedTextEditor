@@ -12,7 +12,7 @@
 import AppKit
 import SwiftUI
 
-public struct HighlightedTextEditor: NSViewRepresentable, HighlightingTextEditor {
+public struct HighlightedTextEditor: NSViewRepresentable, @MainActor HighlightingTextEditor {
     let font: NSFont
     
     public struct Internals {

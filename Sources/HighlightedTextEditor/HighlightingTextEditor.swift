@@ -33,6 +33,8 @@ let defaultEditorTextColor = UIColor.label
 
 #endif
 
+extension SystemFontAlias: @unchecked Sendable {}
+
 public struct TextFormattingRule {
     public typealias AttributedKeyCallback = (String, Range<String.Index>) -> Any
 

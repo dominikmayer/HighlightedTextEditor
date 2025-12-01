@@ -67,7 +67,7 @@ public extension Sequence where Iterator.Element == HighlightRule {
                     let uncappedLevel = content.prefix(while: { char in char == "#" }).count
                     let level = Swift.min(maxHeadingLevel, uncappedLevel)
                     let fontSize = CGFloat(maxHeadingLevel - level) * 2.5 + defaultEditorFont.pointSize
-                    return SystemFontAlias(descriptor: defaultEditorFont.fontDescriptor, size: fontSize) as Any
+                    return SystemFontAlias(descriptor: defaultEditorFont.fontDescriptor, size: fontSize) as Sendable
                 })
             ]),
             HighlightRule(
