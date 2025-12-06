@@ -256,6 +256,26 @@ public extension HighlightedTextEditor {
         
         func setupTextView() {
             scrollView.documentView = textView
+            
+            // Ensure the text container wraps at the scroll view width
+            if let textContainer = textView.textContainer {
+                textContainer.widthTracksTextView = true
+                textContainer.containerSize = NSSize(
+                    width: scrollView.contentSize.width,
+                    height: .greatestFiniteMagnitude
+                )
+            }
+        }
+        
+        override public func layout() {
+            super.layout()
+            
+            if let textContainer = textView.textContainer {
+                textContainer.containerSize = NSSize(
+                    width: scrollView.contentSize.width,
+                    height: .greatestFiniteMagnitude
+                )
+            }
         }
         
         // MARK: - External API
@@ -356,10 +376,16 @@ final class IncrementalHighlighter: NSObject, @MainActor NSTextStorageDelegate {
         defer { isHighlighting = false }
         
         let nsString = textStorage.string as NSString
+        let fullLength = nsString.length
         
-        let paragraphRange = nsString.paragraphRange(for: editedRange)
+        let padding = 8000 // 2–8k should be ok
+        let paddedStart = max(0, editedRange.location - padding)
+        let paddedEnd = min(fullLength, editedRange.location + editedRange.length + padding)
+        let paddedRange = NSRange(location: paddedStart, length: paddedEnd - paddedStart)
         
-        applyHighlighting(in: paragraphRange, textStorage: textStorage)
+        let extendedRange = nsString.paragraphRange(for: paddedRange)
+        
+        applyHighlighting(in: extendedRange, textStorage: textStorage)
     }
     
     private func rehighlightAll(in textStorage: NSTextStorage) {
@@ -392,7 +418,32 @@ final class IncrementalHighlighter: NSObject, @MainActor NSTextStorageDelegate {
         )
         
         textStorage.beginEditing()
-        textStorage.replaceCharacters(in: range, with: highlightedSubstring)
+        
+        let baseAttributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: NSColor.textColor
+        ]
+        
+        textStorage.setAttributes(baseAttributes, range: range)
+        
+        highlightedSubstring.enumerateAttributes(
+            in: NSRange(location: 0, length: highlightedSubstring.length),
+            options: []
+        ) { attributes, subRange, _ in
+            guard !attributes.isEmpty else { return }
+            
+            // We only add the attributes that distinguish the highlight (color, bold, etc.)
+            // The base font is already set.
+            let absoluteRange = NSRange(
+                location: range.location + subRange.location,
+                length: subRange.length
+            )
+            
+            textStorage.addAttributes(attributes, range: absoluteRange)
+        }
+        
+        textStorage.fixAttributes(in: range)
+        
         textStorage.endEditing()
     }
 }
