@@ -8,31 +8,32 @@
 
 #if os(macOS)
 import AppKit
-import Foundation
 
 extension NSFont {
     var bold: NSFont {
-        return with(.bold)
+        return withTraits(.bold)
     }
 
     var italic: NSFont {
-        return with(.italic)
+        return withTraits(.italic)
     }
 
     var boldItalic: NSFont {
-        return with([.bold, .italic])
+        return withTraits([.bold, .italic])
     }
 
-    func with(_ traits: NSFontDescriptor.SymbolicTraits...) -> NSFont {
-        let traitSet = NSFontDescriptor.SymbolicTraits(traits).union(fontDescriptor.symbolicTraits)
-        let descriptor: NSFontDescriptor = fontDescriptor.withSymbolicTraits(traitSet)
-        return NSFont(descriptor: descriptor, size: 0) ?? self
+    func with(_ traits: NSFontDescriptor.SymbolicTraits) -> NSFont {
+        let newTraits = fontDescriptor.symbolicTraits.union(traits)
+        let descriptor = fontDescriptor.withSymbolicTraits(newTraits)
+        
+        return NSFont(descriptor: descriptor, size: self.pointSize) ?? self
     }
 
-    func without(_ traits: NSFontDescriptor.SymbolicTraits...) -> NSFont {
-        let traitSet = fontDescriptor.symbolicTraits.subtracting(NSFontDescriptor.SymbolicTraits(traits))
-        let descriptor = fontDescriptor.withSymbolicTraits(traitSet)
-        return NSFont(descriptor: descriptor, size: 0) ?? self
+    func without(_ traits: NSFontDescriptor.SymbolicTraits) -> NSFont {
+        let newTraits = fontDescriptor.symbolicTraits.subtracting(traits)
+        let descriptor = fontDescriptor.withSymbolicTraits(newTraits)
+        
+        return NSFont(descriptor: descriptor, size: self.pointSize) ?? self
     }
 }
 #endif

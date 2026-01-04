@@ -119,6 +119,12 @@ public extension HighlightedTextEditor {
                 return
             }
             
+            let defaultAttrs: [NSAttributedString.Key: Any] = [
+                .font: parent.font,
+                .foregroundColor: NSColor.textColor // Or defaultEditorTextColor
+            ]
+            textView.typingAttributes = defaultAttrs
+            
             self.parent.text = textView.string
             self.selectedRanges = textView.selectedRanges
         }
@@ -408,8 +414,10 @@ final class IncrementalHighlighter: NSObject, @MainActor NSTextStorageDelegate {
     private func applyHighlighting(in range: NSRange, textStorage: NSTextStorage) {
         guard range.length > 0 else { return }
         
-        let nsString = textStorage.string as NSString
-        let substring = nsString.substring(with: range)
+        let fullContent = textStorage.string as NSString
+        let safeRange = NSIntersectionRange(range, NSRange(location: 0, length: fullContent.length))
+        
+        let substring = fullContent.substring(with: safeRange)
         
         let highlightedSubstring = HighlightedTextEditor.getHighlightedText(
             text: substring,
@@ -419,31 +427,37 @@ final class IncrementalHighlighter: NSObject, @MainActor NSTextStorageDelegate {
         
         textStorage.beginEditing()
         
-        let baseAttributes: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: NSColor.textColor
+        let attributesToRemove: [NSAttributedString.Key] = [
+            .foregroundColor,
+            .font,
+            .backgroundColor,
+            .underlineStyle
         ]
         
-        textStorage.setAttributes(baseAttributes, range: range)
+        for attr in attributesToRemove {
+            textStorage.removeAttribute(attr, range: safeRange)
+        }
+        
+        let baseAttributes: [NSAttributedString.Key: Any] = [
+            .font: self.font,
+            .foregroundColor: NSColor.textColor
+        ]
+        textStorage.addAttributes(baseAttributes, range: safeRange)
         
         highlightedSubstring.enumerateAttributes(
             in: NSRange(location: 0, length: highlightedSubstring.length),
             options: []
         ) { attributes, subRange, _ in
-            guard !attributes.isEmpty else { return }
-            
-            // We only add the attributes that distinguish the highlight (color, bold, etc.)
-            // The base font is already set.
             let absoluteRange = NSRange(
-                location: range.location + subRange.location,
+                location: safeRange.location + subRange.location,
                 length: subRange.length
             )
             
-            textStorage.addAttributes(attributes, range: absoluteRange)
+            let filteredAttributes = attributes.filter { $0.key != .paragraphStyle }
+            textStorage.addAttributes(filteredAttributes, range: absoluteRange)
         }
         
-        textStorage.fixAttributes(in: range)
-        
+        textStorage.fixAttributes(in: safeRange)
         textStorage.endEditing()
     }
 }
