@@ -11,15 +11,15 @@ import AppKit
 
 extension NSFont {
     var bold: NSFont {
-        return withTraits(.bold)
+        return with(.bold)
     }
 
     var italic: NSFont {
-        return withTraits(.italic)
+        return with(.italic)
     }
 
     var boldItalic: NSFont {
-        return withTraits([.bold, .italic])
+        return with([.bold, .italic])
     }
 
     func with(_ traits: NSFontDescriptor.SymbolicTraits) -> NSFont {
